@@ -22,14 +22,14 @@
 
 //ADC struct (8 sets of 32-bit words):
 volatile unsigned int *adcController = (unsigned int *)ADC_BASE;	// Holds adc value 
-volatile int pinState = 0;											// for deciding when the timer is high value or low value 
+volatile int pinState = 0;						// for deciding when the timer is high value or low value 
 
 //button, switch, and hex display
 volatile int* btnHardware = (int*) KEY_BASE;
 volatile int* hex_ptr = (int*) HEX3_HEX0_BASE;
-volatile int *switch_ptr = (int *)SW_BASE;							// reads the switches 
-volatile int switch_val;
-volatile int hex_code[16] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};											// to store switch value 
+volatile int *switch_ptr = (int *)SW_BASE;				// reads the switches 
+volatile int switch_val;						// to store switch value 
+volatile int hex_code[16] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};	
 		
 volatile int current_value = 0; // Initial value of the hex number
 volatile int previous_btn_state = 0; // Keep track of the previous state of the buttons
