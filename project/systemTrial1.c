@@ -6,15 +6,15 @@
 #define ENABLE_PIN 34  		// define actual pin number for Enable2 (PWM) (D34)
 
 // define for GPIO and private timer check addresses and ADC addresses and direction switch 
-#define PRIV_TIME 0xFFFEC600		// private timer
-#define ADC_BASE 0xFF204000	// Analog to digital convertor
-#define SW_BASE	0xFF200040		// Switch base 
-#define JP1_BASE 0xFF200060		// GPIO port
-#define KEY_BASE              0xFF200050//button hardware
-#define HEX3_HEX0_BASE        0xFF200020//hex output hardware location
+#define PRIV_TIME 		0xFFFEC600		// private timer
+#define ADC_BASE 		0xFF204000		// Analog to digital convertor
+#define SW_BASE			0xFF200040		// Switch base 
+#define JP1_BASE 		0xFF200060		// GPIO port
+#define KEY_BASE             	0xFF200050		//button hardware
+#define HEX3_HEX0_BASE        	0xFF200020		//hex output hardware location
 
 // System configurations 
-#define CLOCK_FREQ 100000000	// 100 MHz (change acordingly)
+#define CLOCK_FREQ 100000000		// 100 MHz (change acordingly)
 #define PWM_FREQ  1000			// 1 kHz PWM (change accoridngly)
 
 // Calculate timer load values for clock frequency per desired pwm frequency  
@@ -31,14 +31,14 @@ volatile int *switch_ptr = (int *)SW_BASE;				// reads the switches
 volatile int switch_val;						// to store switch value 
 volatile int hex_code[16] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};	
 		
-volatile int current_value = 0; // Initial value of the hex number
-volatile int previous_btn_state = 0; // Keep track of the previous state of the buttons
+volatile int current_value = 0; 	// Initial value of the hex number
+volatile int previous_btn_state = 0; 	// Keep track of the previous state of the buttons
 
 //GPIO JP1 struct (4 sets of 32-bit words):
 typedef struct
 {
-    uint32_t data;							//Data register
-    uint32_t directCntrl;					//Direction Control register
+    uint32_t data;					//Data register
+    uint32_t directCntrl;				//Direction Control register
     uint32_t interruptEnCntrl;				//Interrupt Enable Control register
     uint32_t edgeCptrStatus;				//Edge-Capture Status register
 } JP1_Struct;
@@ -97,7 +97,7 @@ int ReadSwitch(void)// read the lowest switch and interpret the instructions
 
 //Function to write to the GPIO pins:
 void LightPins(int num){
-    num = num*11/4096;				//10 pins handling 12 bits (2^12==4096)
+    num = num*11/4096;		//10 pins handling 12 bits (2^12==4096)
 
     //write binary string containing num+1 1s in a row
     int pinWrites[11] = {
