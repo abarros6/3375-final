@@ -10,6 +10,8 @@
 #define ADC_BASE 0xFF204000	// Analog to digital convertor
 #define SW_BASE	0xFF200040		// Switch base 
 #define JP1_BASE 0xFF200060		// GPIO port
+#define KEY_BASE              0xFF200050//button hardware
+#define HEX3_HEX0_BASE        0xFF200020//hex output hardware location
 
 // System configurations 
 #define CLOCK_FREQ 100000000	// 100 MHz (change acordingly)
@@ -18,12 +20,20 @@
 // Calculate timer load values for clock frequency per desired pwm frequency  
 #define LOAD CLOCK_FREQ / PWM_FREQ
 
+//ADC struct (8 sets of 32-bit words):
 volatile unsigned int *adcController = (unsigned int *)ADC_BASE;	// Holds adc value 
 volatile int pinState = 0;											// for deciding when the timer is high value or low value 
 
+//button, switch, and hex display
+volatile int* btnHardware = (int*) KEY_BASE;
+volatile int* hex_ptr = (int*) HEX3_HEX0_BASE;
 volatile int *switch_ptr = (int *)SW_BASE;							// reads the switches 
-volatile int switch_val;											// to store switch value 
+volatile int switch_val;
+volatile int hex_code[16] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};											// to store switch value 
 		
+volatile int current_value = 0; // Initial value of the hex number
+volatile int previous_btn_state = 0; // Keep track of the previous state of the buttons
+
 //GPIO JP1 struct (4 sets of 32-bit words):
 typedef struct
 {
@@ -74,9 +84,15 @@ int ReadADC(void) {
 	return adcController[0] & 0xFFF;	// return the 12 bit adc result 
 }
 
-int ReadSwitch(void){
-	switch_val = *(switch_ptr) &= 0x01;		//convert retrieved value from the lowest switch
-	return switch_val;						//return converted value
+void displayHexDigit(int digit) {
+    *hex_ptr = hex_code[digit];
+}
+
+//Function to retreive SW0's value
+int ReadSwitch(void)// read the lowest switch and interpret the instructions
+{
+    switch_val = *(switch_ptr) &= 0x01;//convert retrieved value from the lowest switch
+    return switch_val;//return converted value
 }
 
 //Function to write to the GPIO pins:
@@ -93,6 +109,31 @@ void LightPins(int num){
     //Map the value accordingly
     if(num<11) jp1Controller->data = pinWrites[num];
     else jp1Controller->data &= 0;					//clear out if number is too big to avoid damaging the LEDs
+}
+
+void ButtonControl()
+{
+
+	int btn_value = *btnHardware; // Read the value of buttons
+	// Check if button for incrementing is pressed
+	if ((btn_value & 0b0001) && !(previous_btn_state & 0b0001)) {
+		current_value++; // Increment hex number
+		if (current_value > 15) { // Ensure hex number stays within range [0, 15]
+			current_value = 15;
+		}
+		displayHexDigit(current_value); // Display updated hex number
+	}
+
+	// Check if button for decrementing is pressed
+	if ((btn_value & 0b0010) && !(previous_btn_state & 0b0010)) {
+		current_value--; // Decrement hex number
+		if (current_value < 0) { // Ensure hex number stays within range [0, 15]
+			current_value = 0;
+		}
+		displayHexDigit(current_value); // Display updated hex number
+	}
+
+	previous_btn_state = btn_value; // Update previous button state
 }
 
 // polling the timer 
@@ -136,6 +177,7 @@ int main(void) {
 
 	// running loop 
 	while(1){
+		ButtonControl();
 		SigControl();
 	}
 	

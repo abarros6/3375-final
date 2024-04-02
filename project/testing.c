@@ -71,7 +71,6 @@ int main() {
 
     int current_value = 0; // Initial value of the hex number
     int previous_btn_state = 0; // Keep track of the previous state of the buttons
-    int switchValue;
 
     while (1) {
 
@@ -112,6 +111,4 @@ int main() {
 
         previous_btn_state = btn_value; // Update previous button state
     }
-
-    return 0;
 }
