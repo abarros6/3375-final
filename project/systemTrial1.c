@@ -75,6 +75,7 @@ void GPIO_Set(int pin, int value){
 // Initialize the private timer 
 void InitTimer(uint32_t loadValue){
 	timer->load = loadValue;	// set the load value (one period duration)
+	// maybe dont auto start and explicity restart it in sigControl every time the flag is set 
 	timer->control = 0b11;		// enables auto restart and Enable 
 	timer->status = 1; 			// Just to make sure and clear the flag
 }
