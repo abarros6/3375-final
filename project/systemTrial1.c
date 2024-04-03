@@ -15,7 +15,7 @@
 #define HEX3_HEX0_BASE        	0xFF200020		//hex outpdware location
 
 // System configurations 
-#define LOAD 200000000		// 100 MHz (change acordingly)
+#define LOAD 200000		// 100 MHz (change acordingly)		
 
 //ADC struct (8 sets of 32-bit words):
 volatile unsigned int *adcController = (unsigned int *)ADC_BASE;	// Holds adc value 
@@ -63,8 +63,10 @@ void GPIO_Set(int pin, int value){
 	// write the code here depending on if The motor controller is with jp1 or if its a seperate GPIO
    	if (value) {
        	jp1Controller->data |= (1 << pin);  // Set pin high
+		printf("high: %d\n", pin);
    	} else {
        	jp1Controller->data &= ~(1 << pin);  // Set pin low
+		printf("low: %d\n", pin);
    	}
 }
 
@@ -72,7 +74,7 @@ void GPIO_Set(int pin, int value){
 void InitTimer(uint32_t loadValue){
 	timer->load = loadValue;	// set the load value (one period duration)
 	// maybe dont auto start and explicity restart it in sigControl every time the flag is set 
-	timer->control = 0b01;		// enables
+	timer->control = 0b11;		// enables
 	timer->status = 1; 			// Just to make sure and clear the flag
 }
 
@@ -133,40 +135,43 @@ void ButtonControl()
 	previous_btn_state = btn_value; // Update previous button state
 }
 
+// polling the timer 
 void SigControl(){
 	// read potentiometer and light lens
 	int adcValue = ReadADC();
 	LightPins(adcValue);
 	int flag = timer->status; //
-	printf("ADC Value: %d, FLag: %d\n", adcValue, flag);
-	
+	int loadval = timer->counter;
+	printf("ADC Value: %d, Flag: %d, Load Value: %d\n", adcValue, flag, loadval);
+	// Read switch for direction control and set phase pin
+	// see if our bird supports this method otherwise use two phase pins to control it or use a H-bridge 
+       	int direction = ReadSwitch();
+        GPIO_Set(PHASE_PIN, direction);
 	if (timer->status & 0x01){	//check the status bit to see if the counter reached 0 
-		// Toggle GPIO pin state
-		pinState = !pinState;
-		GPIO_Set(ENABLE_PIN, pinState);
+		
+		// Toggle GPIO pin state  and 
+		pinState = !pinState; 				// to change current HIGH and LOW 
+        	GPIO_Set(ENABLE_PIN, pinState);
 
-		// scale adc for duty cycle
-		uint32_t loadOn = LOAD * adcValue / 4095;	// double check this when implementing
+		// scale adc for duty cycle 
+		uint32_t loadOn = LOAD  *  adcValue / 4095;	 // double check this when implementing 
 		uint32_t loadOff = LOAD - loadOn;
 		printf("Load On: %d, Load Off: %d\n", loadOn, loadOff);
+		
 
 		// Load the next value to the timer duration
 		if (pinState) {
 			timer->load = loadOn;
+			//InitTimer(loadOn);
 			printf("high\n");
-		} else {
+		}else {
 			timer->load = loadOff;
+			//InitTimer(loadOff);
 			printf("low\n");
 		}
 
-		// Clear the interrupt status after updating timer values
-		timer->status = 1;
-
-		// Read switch for direction control and set phase pin
-		int direction = ReadSwitch();
-		GPIO_Set(PHASE_PIN, direction);
-
-		timer->control = 0b01;
+		//timer->control = 0b01;	
+		
 	}
 }
 
@@ -174,7 +179,12 @@ void SigControl(){
 int main(void) {		
 	// initialize the GPIO and timer
 	GPIO_Init();
-	InitTimer(0); 		// start at the off state 
+	InitTimer(LOAD); 		// start at the off state 
+
+    volatile int delay_count;//to track delaying for loop
+    //polling much faster than internal timers, so using main board to calculate delay
+    int DELAY_LENGTH = 100;//to prevent bouncing
+    volatile int val;//used to read from specific ADC channels
 
 	// running loop 
 	while(1){
