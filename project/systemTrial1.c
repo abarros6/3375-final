@@ -133,7 +133,6 @@ void ButtonControl()
 	previous_btn_state = btn_value; // Update previous button state
 }
 
-// polling the timer 
 void SigControl(){
 	// read potentiometer and light lens
 	int adcValue = ReadADC();
@@ -142,32 +141,32 @@ void SigControl(){
 	printf("ADC Value: %d, FLag: %d\n", adcValue, flag);
 	
 	if (timer->status & 0x01){	//check the status bit to see if the counter reached 0 
-		timer->status = 1;   	// clear the interrupt status 
-		
-		// Toggle GPIO pin state  and 
-		pinState = !pinState; 				// to change current HIGH and LOW 
-        GPIO_Set(ENABLE_PIN, pinState);
+		// Toggle GPIO pin state
+		pinState = !pinState;
+		GPIO_Set(ENABLE_PIN, pinState);
 
-		// scale adc for duty cycle 
-		uint32_t loadOn = LOAD  *  adcValue / 4095;	 // double check this when implementing 
+		// scale adc for duty cycle
+		uint32_t loadOn = LOAD * adcValue / 4095;	// double check this when implementing
 		uint32_t loadOff = LOAD - loadOn;
 		printf("Load On: %d, Load Off: %d\n", loadOn, loadOff);
-		
 
 		// Load the next value to the timer duration
 		if (pinState) {
-			InitTimer(loadOn);
+			timer->load = loadOn;
 			printf("high\n");
-		}else {
-			InitTimer(loadOff);
+		} else {
+			timer->load = loadOff;
 			printf("low\n");
 		}
 
+		// Clear the interrupt status after updating timer values
+		timer->status = 1;
+
 		// Read switch for direction control and set phase pin
-		// see if our bird supports this method otherwise use two phase pins to control it or use a H-bridge 
-       	int direction = ReadSwitch();
-        GPIO_Set(PHASE_PIN, direction);
-		timer->control = 0b01;	
+		int direction = ReadSwitch();
+		GPIO_Set(PHASE_PIN, direction);
+
+		timer->control = 0b01;
 	}
 }
 
@@ -176,11 +175,6 @@ int main(void) {
 	// initialize the GPIO and timer
 	GPIO_Init();
 	InitTimer(0); 		// start at the off state 
-
-    volatile int delay_count;//to track delaying for loop
-    //polling much faster than internal timers, so using main board to calculate delay
-    int DELAY_LENGTH = 100;//to prevent bouncing
-    volatile int val;//used to read from specific ADC channels
 
 	// running loop 
 	while(1){
