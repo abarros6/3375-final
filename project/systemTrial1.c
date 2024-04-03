@@ -2,8 +2,8 @@
 #include <stdint.h>
 
 // define gpio pins for motor controller (probably will have to change accordingly)
-#define PHASE_PIN 35  		// define actual pin number for Phase2 (D35)
-#define ENABLE_PIN 34  		// define actual pin number for Enable2 (PWM) (D34)
+#define PHASE_PIN 	0x80000000  	// define actual pin number for Phase2 (D35)
+#define ENABLE_PIN 	0x40000000 		// define actual pin number for Enable2 (PWM) (D34)
 
 // define for GPIO and private timer check addresses and ADC addresses and direction switch 
 #define PRIV_TIME 		0xFFFEC600		// private timer
@@ -37,13 +37,13 @@ volatile int previous_btn_state = 0; 	// Keep track of the previous state of the
 //GPIO JP1 struct (4 sets of 32-bit words):
 typedef struct
 {
-    uint32_t data;					//Data register
+    uint32_t data;						//Data register
     uint32_t directCntrl;				//Direction Control register
-    uint32_t interruptEnCntrl;				//Interrupt Enable Control register
-    uint32_t edgeCptrStatus;				//Edge-Capture Status register
+    uint32_t interruptEnCntrl;			//Interrupt Enable Control register
+    uint32_t edgeCptrStatus;			//Edge-Capture Status register
 } JP1_Struct;
 
-JP1_Struct *jp1Controller = (JP1_Struct *)JP1_BASE;
+JP1_Struct *jp1Controller = (JP1_Struct *)JP1_BASE; // for the leds 
 
 // Timer struct 
 typedef struct {
@@ -58,25 +58,24 @@ volatile PrivateTimer *timer = (PrivateTimer *)PRIV_TIME;
 
 // Initialize pin used for GPIO output PWM 
 void GPIO_Init(){
-	// write the code here depending on if The motor controller is with jp1 or if its a seperate GPIO  if its seprate make a struct and adjust the code 
-	// EX: gpioController->directCntrl |= 1 << ENABLE_PIN  // Set pins as output
+	jp1Controller->directCntrl |= 0xFFFFFF;//set pins 0 through 9 as output and pins 30 and 31 as input
 }
 
 // set the pin to higher low 
 void GPIO_Set(int pin, int value){
 	// write the code here depending on if The motor controller is with jp1 or if its a seperate GPIO
-//    	if (value) {
-//        	gpioController->data |= (1 << pin);  // Set pin high
-//    	} else {
-//        	gpioController->data &= ~(1 << pin);  // Set pin low
-//    	}
+   	if (value) {
+       	jp1Controller->data |= (1 << pin);  // Set pin high
+   	} else {
+       	jp1Controller->data &= ~(1 << pin);  // Set pin low
+   	}
 }
 
 // Initialize the private timer 
 void InitTimer(uint32_t loadValue){
 	timer->load = loadValue;	// set the load value (one period duration)
 	// maybe dont auto start and explicity restart it in sigControl every time the flag is set 
-	timer->control = 0b11;		// enables auto restart and Enable 
+	timer->control = 0b01;		// enables auto restart and Enable 
 	timer->status = 1; 			// Just to make sure and clear the flag
 }
 
@@ -144,7 +143,7 @@ void SigControl(){
 		
 		// Toggle GPIO pin state  and 
 		pinState = !pinState; 				// to change current HIGH and LOW 
-        	GPIO_Set(ENABLE_PIN, pinState);
+        GPIO_Set(ENABLE_PIN, pinState);
 		
 		// read potentiometer and light lens
 		int adcValue = ReadADC();
@@ -164,17 +163,22 @@ void SigControl(){
 
 		// Read switch for direction control and set phase pin
 		// see if our bird supports this method otherwise use two phase pins to control it or use a H-bridge 
-       		int direction = ReadSwitch();
-        	GPIO_Set(PHASE_PIN, direction);
+       	int direction = ReadSwitch();
+        GPIO_Set(PHASE_PIN, direction);
+		timer->control = 0b01;	
 	}
 }
 
 // main method 
 int main(void) {		
-	
 	// initialize the GPIO and timer
 	GPIO_Init();
 	InitTimer(0); 		// start at the off state 
+
+    volatile int delay_count;//to track delaying for loop
+    //polling much faster than internal timers, so using main board to calculate delay
+    int DELAY_LENGTH = 100;//to prevent bouncing
+    volatile int val;//used to read from specific ADC channels
 
 	// running loop 
 	while(1){
