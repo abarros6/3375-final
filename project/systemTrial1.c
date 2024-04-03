@@ -1,5 +1,6 @@
 // Motor Driver 
 #include <stdint.h>
+#include <stdio.h>
 
 // define gpio pins for motor controller (probably will have to change accordingly)
 #define PHASE_PIN 	0x80000000  	// define actual pin number for Phase2 (D35)
@@ -14,7 +15,7 @@
 #define HEX3_HEX0_BASE        	0xFF200020		//hex output hardware location
 
 // System configurations 
-#define CLOCK_FREQ 100000000		// 100 MHz (change acordingly)
+#define CLOCK_FREQ 200000000		// 100 MHz (change acordingly)
 #define PWM_FREQ  1000			// 1 kHz PWM (change accoridngly)
 
 // Calculate timer load values for clock frequency per desired pwm frequency  
@@ -138,16 +139,16 @@ void ButtonControl()
 
 // polling the timer 
 void SigControl(){
+	// read potentiometer and light lens
+	int adcValue = ReadADC();
+	LightPins(adcValue);
+	
 	if (timer->status & 0x01){	//check the status bit to see if the counter reached 0 
 		timer->status = 1;   	// clear the interrupt status 
 		
 		// Toggle GPIO pin state  and 
 		pinState = !pinState; 				// to change current HIGH and LOW 
         GPIO_Set(ENABLE_PIN, pinState);
-		
-		// read potentiometer and light lens
-		int adcValue = ReadADC();
-		LightPins(adcValue);
 
 		// scale adc for duty cycle 
 		uint32_t loadOn = LOAD  *  adcValue / 4095;	 // double check this when implementing 
