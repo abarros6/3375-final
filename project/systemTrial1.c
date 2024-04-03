@@ -15,11 +15,7 @@
 #define HEX3_HEX0_BASE        	0xFF200020		//hex outpdware location
 
 // System configurations 
-#define CLOCK_FREQ 200000000		// 100 MHz (change acordingly)
-#define PWM_FREQ  1000			// 1 kHz PWM (change accoridngly)
-
-// Calculate timer load values for clock frequency per desired pwm frequency  
-#define LOAD CLOCK_FREQ / PWM_FREQ
+#define LOAD 200000000		// 100 MHz (change acordingly)
 
 //ADC struct (8 sets of 32-bit words):
 volatile unsigned int *adcController = (unsigned int *)ADC_BASE;	// Holds adc value 
@@ -59,7 +55,7 @@ volatile PrivateTimer *timer = (PrivateTimer *)PRIV_TIME;
 
 // Initialize pin used for GPIO output PWM 
 void GPIO_Init(){
-	jp1Controller->directCntrl |= 0xFFFFFF;//set pins 0 through 9 as output and pins 30 and 31 as input
+	jp1Controller->directCntrl |= 0xFFFFFFFF;//set pins 0 through 9 as output and pins 30 and 31 as input
 }
 
 // set the pin to higher low 
