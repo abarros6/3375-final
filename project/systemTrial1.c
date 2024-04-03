@@ -3,8 +3,8 @@
 #include <stdio.h>
 
 // define gpio pins for motor controller (probably will have to change accordingly)
-#define PHASE_PIN 	0x80000000  	// define actual pin number for Phase2 (D35)
-#define ENABLE_PIN 	0x40000000 		// define actual pin number for Enable2 (PWM) (D34)
+#define PHASE_PIN 	31  	// define actual pin number for Phase2 (D35)
+#define ENABLE_PIN 	30 		// define actual pin number for Enable2 (PWM) (D34)
 
 // define for GPIO and private timer check addresses and ADC addresses and direction switch 
 #define PRIV_TIME 		0xFFFEC600		// private timer
@@ -12,7 +12,7 @@
 #define SW_BASE			0xFF200040		// Switch base 
 #define JP1_BASE 		0xFF200060		// GPIO port
 #define KEY_BASE             	0xFF200050		//button hardware
-#define HEX3_HEX0_BASE        	0xFF200020		//hex output hardware location
+#define HEX3_HEX0_BASE        	0xFF200020		//hex outpdware location
 
 // System configurations 
 #define CLOCK_FREQ 200000000		// 100 MHz (change acordingly)
@@ -76,7 +76,7 @@ void GPIO_Set(int pin, int value){
 void InitTimer(uint32_t loadValue){
 	timer->load = loadValue;	// set the load value (one period duration)
 	// maybe dont auto start and explicity restart it in sigControl every time the flag is set 
-	timer->control = 0b01;		// enables auto restart and Enable 
+	timer->control = 0b01;		// enables
 	timer->status = 1; 			// Just to make sure and clear the flag
 }
 
@@ -142,6 +142,8 @@ void SigControl(){
 	// read potentiometer and light lens
 	int adcValue = ReadADC();
 	LightPins(adcValue);
+	int flag = timer->status; //
+	printf("ADC Value: %d, FLag: %d\n", adcValue, flag);
 	
 	if (timer->status & 0x01){	//check the status bit to see if the counter reached 0 
 		timer->status = 1;   	// clear the interrupt status 
@@ -153,13 +155,16 @@ void SigControl(){
 		// scale adc for duty cycle 
 		uint32_t loadOn = LOAD  *  adcValue / 4095;	 // double check this when implementing 
 		uint32_t loadOff = LOAD - loadOn;
+		printf("Load On: %d, Load Off: %d\n", loadOn, loadOff);
 		
 
 		// Load the next value to the timer duration
 		if (pinState) {
 			InitTimer(loadOn);
+			printf("high\n");
 		}else {
 			InitTimer(loadOff);
+			printf("low\n");
 		}
 
 		// Read switch for direction control and set phase pin
